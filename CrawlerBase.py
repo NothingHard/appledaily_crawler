@@ -55,11 +55,18 @@ class CrawlerBase(object):
         self.overallEntries = {}
         self.loadOverallEntries()
 
+        self.overallEntriesPendingFile = None
+        self.overallEntriesPendingWriter = None
+        self.overallEntriesPending = {}
+        self.loadOverallEntriesPending()
+
     def freeResource(self):
         if (self.logFileHandler):
             self.logFileHandler.close()
         if (self.overallEntriesFile != None):
             self.overallEntriesFile.close()
+        if (self.overallEntriesPendingFile != None):
+            self.overallEntriesPendingFile.close()
 
     def initLogger(self):
         logging.basicConfig(level=logging.DEBUG,
@@ -136,6 +143,8 @@ class CrawlerBase(object):
                 self.parsePages()
                 self.sort_csv(os.path.join(self.profileDir, overallFileName),
                               os.path.join(self.profileDir, overallSortedFileName), (0,))
+                self.sort_csv(os.path.join(self.profileDir, u"未結案" + os.sep + overallFileName),
+                              os.path.join(self.profileDir, u"未結案" + os.sep + overallSortedFileName), (0,))
 
                 if (self.logCounterHandler.logCount > 0 and time.time() - self.lastErrorReportTime > 2 * 60 * 60):
                     dir, scriptName = os.path.split(sys.argv[0])
@@ -184,6 +193,26 @@ class CrawlerBase(object):
             self.overallEntriesWriter = csv.writer(self.overallEntriesFile)
         self.overallEntriesWriter.writerow(values)
         self.overallEntriesFile.flush()
+
+    def loadOverallEntriesPending(self):
+        filename = os.path.join(self.profileDir, u"未結案" + os.sep + overallFileName)
+        if (os.path.isfile(filename)):
+            with open(filename, 'rb') as csvfile:
+                for row in csv.reader(csvfile):
+                    if (len(row) > 0):
+                        self.overallEntriesPending[row[0]] = True
+
+    def saveOverallEntryPending(self, id, values):
+        if (id in self.overallEntriesPending):
+            return
+        self.overallEntriesPending[id] = True
+        #self.logger.warn("saveOverallEntryPending -- overallEntryPending.title: %s" % overallEntryPending.title)
+
+        if (self.overallEntriesPendingWriter == None or self.overallEntriesPendingFile == None):
+            self.overallEntriesPendingFile = open(os.path.join(self.profileDir, u"未結案" + os.sep + overallFileName), "ab")
+            self.overallEntriesPendingWriter = csv.writer(self.overallEntriesPendingFile)
+        self.overallEntriesPendingWriter.writerow(values)
+        self.overallEntriesPendingFile.flush()
 
     def sort_csv(self, csvFilename, dstFilename, sort_key_columns):
         data = []

@@ -8,6 +8,7 @@ import logging
 import urlparse
 import re
 import csv
+import shutil
 
 import urllib3
 #from lxml import etree
@@ -30,7 +31,8 @@ import sys
 reload(sys)
 sys.setdefaultencoding("utf8")
 
-#logging.basicConfig(level=logging.DEBUG)
+# logging.basicConfig(level=logging.DEBUG)
+# logging.basicConfig(level=logging.WARNING)
 # logger = logging.getLogger(__name__)
 # log = Log(logger)
 
@@ -122,6 +124,10 @@ class AppleDaily(CrawlerBase):
                                     self.logger.warn("parse error!!!")
                                 if (status == u"已結案"):
                                     dir = os.path.join(self.profileDir, id[-1:] + os.sep + id + os.sep)
+                                    dirRm = os.path.join(self.profileDir, u"未結案" + os.sep + id[-1:] + os.sep + id + os.sep)
+                                    if (self.getIsProfileSaved(dirRm)):
+                                        shutil.rmtree(dirRm, ignore_errors=True)
+
                                     if (not self.getIsProfileSaved(dir)):
                                         #self.logger.warn("saving profile: page %d, id %s" % (pageIndex, id))
                                         overallEntry = OverallEntry()
@@ -141,7 +147,23 @@ class AppleDaily(CrawlerBase):
                                     self.saveUrls(dir, reportUrl, detailUrl)
                                     #self.saveMetadata(dir, title, date, amount)
                                 elif (status == u"未結案"):
-                                    pass
+                                    dir = os.path.join(self.profileDir, u"未結案" + os.sep + id[-1:] + os.sep + id + os.sep)
+                                    overallEntry = OverallEntry()
+                                    overallEntry.id = id
+                                    overallEntry.title = StrHelper.trim(title)
+                                    overallEntry.total = amount
+                                    overallEntry.begindate = date
+                                    self.logger.info("saving profile %s" % id)
+                                    self.saveProfile(id, dir, reportUrl, detailUrl, overallEntry)
+                                    self.saveOverallEntryPending(overallEntry.id, [overallEntry.id,
+                                                                            overallEntry.begindate,
+                                                                            overallEntry.enddate,
+                                                                            overallEntry.total,
+                                                                            overallEntry.doners,
+                                                                            overallEntry.title,
+                                                                            overallEntry.reporter])
+                                    self.saveUrls(dir, reportUrl, detailUrl)
+                                    # pass
                                 else:
                                     self.logger.warn("unknown status")
 
@@ -215,10 +237,17 @@ class AppleDaily(CrawlerBase):
                               re.compile(ur"^【(.{2,4})╱.{2,4}報導】", re.MULTILINE), ]
 
             #preserve <br> tags as \n
-            for br in page.xpath(u"//div[@class='articulum']//br"):
+            brs = page.xpath(u"//div[@class='articulum']//br")
+            if (len(brs) == 0):
+            	brs = page.xpath(u"//div[@class='articulum trans']//br")
+
+            for br in brs:
                 br.tail = "\n" + br.tail if br.tail else "\n"
 
             items = page.xpath(u"//div[@class='articulum']/*")
+            if (len(items) == 0):
+                items = page.xpath(u"//div[@class='articulum trans']/*")
+
             for item in items:
                 tag = item.tag.lower()
                 id = self.get_attrib(item, "id", None)
