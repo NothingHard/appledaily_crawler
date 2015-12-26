@@ -58,7 +58,7 @@ class CrawlerBase(object):
         self.overallEntriesPendingFile = None
         self.overallEntriesPendingWriter = None
         self.overallEntriesPending = {}
-        self.loadOverallEntriesPending()
+        # self.loadOverallEntriesPending()
 
     def freeResource(self):
         if (self.logFileHandler):
