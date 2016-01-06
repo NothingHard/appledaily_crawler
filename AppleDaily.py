@@ -124,7 +124,7 @@ class AppleDaily(CrawlerBase):
                                     self.logger.warn("parse error!!!")
                                 if (status == u"已結案"):
                                     dir = os.path.join(self.profileDir, id[-1:] + os.sep + id + os.sep)
-                                    dirRm = os.path.join(self.profileDir, "未結案" + os.sep + id[-1:] + os.sep + id + os.sep)
+                                    dirRm = os.path.join(self.profileDir, u"未結案" + os.sep + id[-1:] + os.sep + id + os.sep)
                                     if (self.getIsProfileSaved(dirRm)):
                                         shutil.rmtree(dirRm, ignore_errors=True)
 
@@ -136,6 +136,9 @@ class AppleDaily(CrawlerBase):
                                         overallEntry.total = amount
                                         overallEntry.begindate = date
                                         self.logger.info("saving profile %s" % id)
+
+                                        # FIXME: IOError: [Errno 2] No such file or directory: appledaily/profiles/\u672a\u7d50\u6848/
+                                        dir = dir.replace(u"未結案"+os.sep, '')
                                         self.saveProfile(id, dir, reportUrl, detailUrl, overallEntry)
                                         self.saveOverallEntry(overallEntry.id, [overallEntry.id,
                                                                                 overallEntry.begindate,
